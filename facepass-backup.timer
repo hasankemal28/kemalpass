@@ -1,0 +1,8 @@
+[Unit]
+Description=GiysunPASS daily backup at 03:30 Istanbul
+[Timer]
+OnCalendar=*-*-* 03:30:00 Europe/Istanbul
+Persistent=true
+RandomizedDelaySec=300
+[Install]
+WantedBy=timers.target
