@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+[ "$(id -u)" -eq 0 ] || { echo 'sudo giysunpass-kur ile çalıştırın.'; exit 1; }
+# Hazırlık halen sürüyorsa systemctl bitmesini bekler; şifre günlüklere yazılmaz.
+if [ ! -f /var/lib/giysunpass-install/prepared ]; then systemctl start giysunpass-setup.service; fi
+[ -f /var/lib/giysunpass-install/prepared ] || { echo 'Önce kurulum hatasını giderin: journalctl -u giysunpass-setup'; exit 1; }
+if [ -f /var/lib/giysunpass-install/complete ]; then
+  echo 'GiysunPASS kurulu. Şifreyi panelde Hesabım bölümünden değiştirebilirsiniz.'
+  exit 0
+fi
+runuser -u facepass -- env FACEPASS_DATA=/var/lib/facepass python3 /opt/facepass/bootstrap.py
+systemctl enable --now facepass.service facepass-backup.timer
+systemctl restart facepass.service
+curl --fail --silent --retry 20 --retry-connrefused --retry-delay 2 http://127.0.0.1:8080/healthz
+systemctl enable --now giysunpass-sqlite-web.service
+date -u > /var/lib/giysunpass-install/complete
+echo
+echo 'GiysunPASS kuruldu. Kullanıcı: giysunpass. Şifre: kurulumda onayladığınız şifre.'
+echo 'SQLite Web: http://127.0.0.1:8081 (SSH tüneliyle erişilebilir).'
+echo 'Panel: http://SUNUCU_IP:8080 · IP adresleri:'
+hostname -I
